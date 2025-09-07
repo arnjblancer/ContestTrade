@@ -8,7 +8,7 @@ import re
 import os
 from pathlib import Path
 from typing import Optional, Dict
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import deque
 
 import typer
@@ -988,6 +988,64 @@ def run(
         break
     
     console.print(get_text(f"[green]感谢使用ContestTrade![/green]", f"[green]Thank you for using ContestTrade![/green]"))
+
+
+@app.command()
+def backtest(
+    market: Optional[str] = typer.Option(None, "--market", "-m", help="选择市场 (CN-Stock/US-Stock)"),
+    start: str = typer.Option(..., "--start", "-s", help="开始日期 YYYY-MM-DD"),
+    end: str = typer.Option(..., "--end", "-e", help="结束日期 YYYY-MM-DD"),
+):
+    """在指定时间区间内运行ContestTrade回测"""
+
+    # 获取市场选择
+    if not market:
+        market = get_market_selection()
+
+    # 验证市场选择
+    if not market:
+        console.print("[red]未提供市场选择[/red]")
+        raise typer.Exit(1)
+
+    if market not in ["CN-Stock", "US-Stock"]:
+        console.print("[red]市场选择错误，请选择 CN-Stock 或 US-Stock[/red]")
+        raise typer.Exit(1)
+
+    os.environ['CONTEST_TRADE_MARKET'] = market
+
+    # 解析日期
+    try:
+        start_date = datetime.strptime(start, "%Y-%m-%d")
+        end_date = datetime.strptime(end, "%Y-%m-%d")
+    except ValueError:
+        console.print("[red]日期格式应为 YYYY-MM-DD[/red]")
+        raise typer.Exit(1)
+
+    if start_date > end_date:
+        console.print("[red]开始日期必须早于结束日期[/red]")
+        raise typer.Exit(1)
+
+    # 验证必需服务
+    if not validate_required_services():
+        console.print("[red]系统验证失败，无法启动分析[/red]")
+        raise typer.Exit(1)
+
+    current_date = start_date
+    while current_date <= end_date:
+        trigger_time = get_trigger_time_for_market(market, current_date)
+        console.print(f"[bold blue]回测日期: {trigger_time}[/bold blue]")
+        try:
+            from contest_trade.main import SimpleTradeCompany
+            company = SimpleTradeCompany()
+            final_state = asyncio.run(company.run_company(trigger_time))
+            signals = final_state.get("research_signals", []) if final_state else []
+            console.print(f"[green]完成 {trigger_time} 分析，信号数: {len(signals)}[/green]")
+        except Exception as e:
+            console.print(f"[red]日期 {trigger_time} 分析失败: {e}[/red]")
+
+        current_date += timedelta(days=1)
+
+    console.print(get_text("[green]回测完成[/green]", "[green]Backtest finished[/green]"))
 
 @app.command()
 def config():
