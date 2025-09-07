@@ -1,5 +1,16 @@
+"""Utility functions for dealing with dates and trading calendars."""
+
 from datetime import datetime
-from utils.market_manager import GLOBAL_MARKET_MANAGER
+
+# ``date_utils`` lives inside the :mod:`contest_trade.utils` package. When it
+# was originally written it attempted to import ``GLOBAL_MARKET_MANAGER`` using
+# ``from utils.market_manager ...``. That works only when the project root is
+# added to ``sys.path`` manually, which isn't the case when the module is
+# imported as part of the package (e.g. ``import contest_trade.utils.date_utils``).
+# As a result a ``ModuleNotFoundError`` was raised. Using an explicit relative
+# import ensures the module works regardless of how the package is loaded.
+
+from .market_manager import GLOBAL_MARKET_MANAGER
 
 def get_current_datetime(trigger_time: str) -> str:
     """Get current time"""
