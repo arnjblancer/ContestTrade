@@ -181,11 +181,19 @@ def get_market_selection() -> str:
     else:
         return None
 
-def get_trigger_time_for_market(market: str) -> str:
-    """根据市场获取对应的触发时间，并设置环境变量"""
+def get_trigger_time_for_market(market: str, custom_time: Optional[datetime] = None) -> str:
+    """根据市场获取对应的触发时间，并设置环境变量。
+
+    如果提供 ``custom_time``，则直接使用该时间（假设已经是对应市场的时间），
+    否则按照当前时间生成触发时间。
+    """
     # 设置环境变量
     os.environ['CONTEST_TRADE_MARKET'] = market
-    
+
+    # 如提供自定义时间，直接返回
+    if custom_time is not None:
+        return custom_time.strftime("%Y-%m-%d %H:%M:%S")
+
     # 根据市场获取触发时间
     if market == "CN-Stock":
         # A股市场使用当前交易日
@@ -193,7 +201,7 @@ def get_trigger_time_for_market(market: str) -> str:
     elif market == "US-Stock":
         # 美股市场使用美东时区时间
         from datetime import datetime, timezone, timedelta
-        
+
         try:
             # 尝试使用 pytz 获取美东时区
             import pytz
@@ -202,26 +210,24 @@ def get_trigger_time_for_market(market: str) -> str:
             console.print(f"🇺🇸 [cyan]使用美东时区: {now.strftime('%Y-%m-%d %H:%M:%S %Z')}[/cyan]")
         except ImportError:
             # 如果没有 pytz，使用简单的时区计算（考虑夏令时）
-            from datetime import datetime
             import time
-            
-            # 检查是否为夏令时（简化版本：3月第二个周日到11月第一个周日）
+
             now_utc = datetime.now(timezone.utc)
             is_dst = time.daylight and time.localtime().tm_isdst > 0
-            
+
             if is_dst:
                 # 夏令时 EDT = UTC-4
                 offset_hours = -4
                 tz_name = "EDT"
             else:
-                # 标准时间 EST = UTC-5  
+                # 标准时间 EST = UTC-5
                 offset_hours = -5
                 tz_name = "EST"
-            
+
             eastern_tz = timezone(timedelta(hours=offset_hours))
             now = now_utc.astimezone(eastern_tz)
             console.print(f"🇺🇸 [cyan]使用美东时区: {now.strftime('%Y-%m-%d %H:%M:%S')} {tz_name}[/cyan]")
-        
+
         return now.strftime("%Y-%m-%d %H:%M:%S")
     else:
         return None

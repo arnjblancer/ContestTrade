@@ -117,6 +117,12 @@ You can easily start ContestTrade using the Command Line Interface (CLI).
 python -m cli.main run
 ```
 
+To backtest over a date range without the interactive interface:
+
+```bash
+python -m cli.main backtest --market CN-Stock --start 2024-01-01 --end 2024-01-05
+```
+
 After the program starts, you will enter the terminal interactive interface and can choose the market you want to analyze. The default analysis time is the current time.
 <p align="center">
   <img src="assets/contest_trade_cli_select_market.jpg" style="width: 100%; height: auto;">
